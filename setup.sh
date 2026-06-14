@@ -52,8 +52,8 @@ install() {
     echo "  Installed: $USER_SYSTEMD_DIR/batenergy-notify.{path,service}"
 
     # Enable and start the path watcher (run as the real user)
-    sudo -u "${REAL_USER}" systemctl --user daemon-reload
-    sudo -u "${REAL_USER}" systemctl --user enable --now batenergy-notify.path
+    sudo -u "${REAL_USER}" XDG_RUNTIME_DIR=/run/user/${USER_ID} systemctl --user daemon-reload
+    sudo -u "${REAL_USER}" XDG_RUNTIME_DIR=/run/user/${USER_ID} systemctl --user enable --now batenergy-notify.path
     echo "  Enabled: batenergy-notify.path"
 
     echo ""
@@ -77,12 +77,12 @@ uninstall() {
     rm -f "$SYSTEMD_SLEEP_DIR/batenergy.sh"
     echo "  Removed: $SYSTEMD_SLEEP_DIR/batenergy.sh"
 
-    sudo -u "${REAL_USER}" systemctl --user disable --now batenergy-notify.path 2>/dev/null || true
+    sudo -u "${REAL_USER}" XDG_RUNTIME_DIR=/run/user/${USER_ID} systemctl --user disable --now batenergy-notify.path 2>/dev/null || true
     rm -f "$USER_SYSTEMD_DIR/batenergy-notify.path"
     rm -f "$USER_SYSTEMD_DIR/batenergy-notify.service"
     echo "  Removed: $USER_SYSTEMD_DIR/batenergy-notify.{path,service}"
 
-    sudo -u "${REAL_USER}" systemctl --user daemon-reload
+    sudo -u "${REAL_USER}" XDG_RUNTIME_DIR=/run/user/${USER_ID} systemctl --user daemon-reload
     echo "  Reloaded user systemd"
 
     echo ""
@@ -112,7 +112,7 @@ status() {
     # Check user systemd units
     if [[ -f "$USER_SYSTEMD_DIR/batenergy-notify.path" ]]; then
         local path_status
-        path_status=$(sudo -u "${REAL_USER}" systemctl --user is-active batenergy-notify.path 2>/dev/null || echo "unknown")
+        path_status=$(sudo -u "${REAL_USER}" XDG_RUNTIME_DIR=/run/user/${USER_ID} systemctl --user is-active batenergy-notify.path 2>/dev/null || echo "unknown")
         echo "  [OK] Path unit: batenergy-notify.path ($path_status)"
     else
         echo "  [ ] Path unit: batenergy-notify.path (not installed)"
@@ -120,7 +120,7 @@ status() {
 
     if [[ -f "$USER_SYSTEMD_DIR/batenergy-notify.service" ]]; then
         local svc_status
-        svc_status=$(sudo -u "${REAL_USER}" systemctl --user is-active batenergy-notify.service 2>/dev/null || echo "unknown")
+        svc_status=$(sudo -u "${REAL_USER}" XDG_RUNTIME_DIR=/run/user/${USER_ID} systemctl --user is-active batenergy-notify.service 2>/dev/null || echo "unknown")
         echo "  [OK] Service: batenergy-notify.service ($svc_status)"
     else
         echo "  [ ] Service: batenergy-notify.service (not installed)"

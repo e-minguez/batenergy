@@ -1,0 +1,8 @@
+[Unit]
+Description=Battery resume notification
+
+[Service]
+Type=oneshot
+Environment=DISPLAY=:0
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+ExecStart=/usr/bin/bash -c 'sleep 15; MSG=$(cat /run/user/1000/batenergy.notify 2>/dev/null); [[ -n "$MSG" ]] && /usr/bin/notify-send -t 30000 "Battery resume stats" "$MSG"; /usr/bin/rm -f /run/user/1000/batenergy.notify'

@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch for batenergy notification file
+
+[Path]
+PathModified=/run/user/1000/batenergy.notify
+Unit=batenergy-notify.service
+
+[Install]
+WantedBy=default.target

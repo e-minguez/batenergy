@@ -48,7 +48,7 @@ install() {
     mkdir -p "$USER_SYSTEMD_DIR"
     cp "$SCRIPT_DIR/batenergy-notify.path" "$USER_SYSTEMD_DIR/"
     cp "$SCRIPT_DIR/batenergy-notify.service" "$USER_SYSTEMD_DIR/"
-    chown "${REAL_USER}:${REAL_USER}" "$USER_SYSTEMD_DIR/batenergy-notify.{path,service}"
+    chown "${REAL_USER}:${REAL_USER}" "$USER_SYSTEMD_DIR/batenergy-notify.path" "$USER_SYSTEMD_DIR/batenergy-notify.service"
     echo "  Installed: $USER_SYSTEMD_DIR/batenergy-notify.{path,service}"
 
     # Enable and start the path watcher (run as the real user)

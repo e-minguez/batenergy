@@ -1,34 +1,113 @@
-# batenergy
-Script to track laptop battery energy change during sleep states using systemd's system-sleep directory
+# batenergy (fork)
+
+Fork of [batenergy](https://github.com/equaeghe/batenergy) by Erik Quaeghebeur.
+
+Battery drain monitor for suspend/resume. Tracks how much battery was consumed during sleep and shows the stats via desktop notification after resuming.
+
+## Changes from original
+
+- **Desktop notification on resume** — sends a `notify-send` popup with drain stats after waking from sleep
+- **Charging detection** — skips measurement when the battery is plugged in and charging (checks `BAT*/status`)
+- **Bug fixes** — fixes array path expansion bugs (`BAT*`, `A*` globs now resolve correctly)
+- **inotify-based notification** — uses systemd path units with kernel inotify, no polling or cron
+- **Installation script** — `setup.sh` with `install`/`uninstall`/`status` commands
+- **Improved output** — includes full duration breakdown, energy difference, and average drain rate
+
+## Features
+
+- Tracks energy consumption during suspend (before/after comparison)
+- Skips measurement when battery is charging (plugged in)
+- Desktop notification with drain rate (mW, %/h) after resume
+- Works with Wayland notification daemons (mako, dunst, swaync, etc.) via D-Bus
+- Zero CPU overhead — inotify is event-driven
+
+## Requirements
+
+- Linux with `/sys/class/power_supply/BAT*`
+- `bc` (for percentage calculations)
+- `notify-send` (for desktop notifications)
+- systemd (for sleep hooks and user services)
+- A notification daemon (mako, dunst, swaync, etc.)
 
 ## Installation
-This script should be copied to systemd's system-sleep directory.
-This directory is normally already present at `/usr/lib/systemd/system-sleep` or `/lib/systemd/system-sleep`; check your Linux distribution's information resources if it isn't clear which.
-Make sure it is executable (`chmod +x batenergy.sh` as needed).
 
-## Usage
-Once installed, the script will cause informative output about battery energy change (amount and rate, in absolute units and percentages) to be added to the system logs.
-This information may be useful for troubleshooting both discharging and charging of the battery during sleep states.
-
-Example output, accessible using, e.g.,  `journalctl -u systemd-suspend.service`:
-
-```
-systemd[1]: Starting System Suspend...
-systemd-sleep[2096130]: Currently on battery.
-systemd-sleep[2096130]: Saving time and battery energy before sleeping (suspend).
-systemd-sleep[2096128]: Suspending system...
-systemd-sleep[2096128]: System resumed.
-systemd-sleep[2096235]: Currently on mains.
-systemd-sleep[2096235]: Duration of 0 days 3 hours 26 minutes sleeping (suspend).
-systemd-sleep[2096235]: Battery energy change of -4.5 % (-2320 mWh) at an average rate of -1.30 %/h (-673 mW).
-systemd[1]: systemd-suspend.service: Deactivated successfully.
-systemd[1]: Finished System Suspend.
+```bash
+sudo bash setup.sh install
 ```
 
-## Caveats
-This script has been tested on one laptop model.
-I may have made assumptions that do not hold for yours; use at your own risk.
-Checking (for) the files referenced in the script (and other files in the containing directories) may help you adapt it to your model.
+Then edit `/usr/local/bin/batenergy.sh` and set your username:
+
+```bash
+USER="your-username"
+```
+
+## Uninstallation
+
+```bash
+sudo bash setup.sh uninstall
+```
+
+## Manual Setup
+
+If you prefer not to use the setup script:
+
+1. Copy the script to `/usr/local/bin/batenergy.sh` and make it executable.
+2. Set `USER` to your username in the script.
+3. Create a symlink in the systemd-sleep directory:
+   ```bash
+   sudo ln -sf /usr/local/bin/batenergy.sh /etc/systemd/system-sleep/batenergy.sh
+   ```
+4. Install and enable the user-level systemd units:
+   ```bash
+   cp batenergy-notify.{path,service} ~/.config/systemd/user/
+   systemctl --user daemon-reload
+   systemctl --user enable --now batenergy-notify.path
+   ```
+
+## How It Works
+
+The script is invoked by `systemd-sleep` with two arguments:
+
+| Stage | Arguments | What happens |
+|-------|-----------|-------------|
+| Before suspend | `pre suspend` | Saves timestamp + battery energy to a temp file |
+| After resume | `post suspend` | Reads saved values, calculates drain, writes message to a file |
+
+The user-level systemd `batenergy-notify.path` watches for the notification file and triggers `batenergy-notify.service` which sends the desktop notification via `notify-send` in the user's D-Bus session.
+
+## Example Output
+
+```
+Currently on battery.
+Duration of 0 days 0 hours 6 minutes sleeping (suspend).
+Energy difference = 44520 - 45000
+Battery energy change of -1.0 % (-480 mWh) at an average rate of -16.00 %/h (-480 mW).
+```
+
+## Testing
+
+```bash
+# Simulate pre-suspend
+sudo batenergy.sh pre suspend
+
+# Simulate post-suspend (requires the pre data to exist)
+sudo batenergy.sh post suspend
+```
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `batenergy.sh` | Main script (runs as root via systemd-sleep) |
+| `batenergy-notify.path` | Watches for notification file via inotify (user systemd) |
+| `batenergy-notify.service` | Sends desktop notification (user systemd) |
+| `setup.sh` | Installation script |
 
 ## Credits
+
+Original script by [Erik Quaeghebeur](https://github.com/equaeghe/batenergy).
 Inspired by [Oliver Machacik's batdistrack](https://github.com/oliver-machacik/batdistrack).
+
+## License
+
+GPLv3 — same as the original [batenergy](https://github.com/equaeghe/batenergy).
